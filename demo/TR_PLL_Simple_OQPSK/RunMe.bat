@@ -1,0 +1,1 @@
+.\TR_PLL_Simple_OQPSK.exe ..\inputSignalOQPSK.bin 4

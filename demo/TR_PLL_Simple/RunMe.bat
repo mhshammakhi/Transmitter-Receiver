@@ -1,0 +1,1 @@
+.\TR_PLL_Simple.exe ..\inputSignal.bin QPSK 4
