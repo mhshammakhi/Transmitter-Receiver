@@ -1,0 +1,1 @@
+.\TR_PLL_ParFrames.exe .\inputSignal.bin QPSK 4
