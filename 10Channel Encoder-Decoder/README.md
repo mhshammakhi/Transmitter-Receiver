@@ -9,10 +9,10 @@ I will check whenever each part will be completed.
 ## Roadmap
 
 - [x] LDPC Decoder:
-  - [ ] CUDA code (in General)
+  - [x] CUDA code (in General)
   - [ ] CUDA code for DVBS2
 - [x] TPC Decoder:
-  - [ ] CUDA code
+  - [x] CUDA code
 - [ ] Reed Solomon Decoder:
   - [ ] Matlab Code
   - [ ] CUDA Code
