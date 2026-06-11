@@ -1,3 +1,7 @@
+#define MAX_FILTER_LENGTH 1024
+
+__constant__ float c_baseBandFilter_Coef[MAX_FILTER_LENGTH];
+
 __global__
 void filterBaseband(float *d_data_Re, float *d_data_Im, float *d_filteredData_Re,
                     float *d_filteredData_Im, const int filterLength, const int dataLength, float *d_ABS)
