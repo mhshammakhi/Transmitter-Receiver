@@ -5,14 +5,14 @@ BUILD_DIR   := build
 # When called as 'make block DDC', extract 'DDC' as the block name.
 BLOCK := $(filter-out block, $(MAKECMDGOALS))
 
-.PHONY: block DDC FilterDownSample BaseBandFilter TimingRecovery clean
+.PHONY: block DDC FilterDownSample BaseBandFilter Normalization TimingRecovery clean
 
 # ---- Block dispatcher ----------------------------------------
 # Usage: make block <BLOCK_NAME>   e.g.  make block DDC
 block:
 ifeq ($(BLOCK),)
 	@echo "Usage: make block <BLOCK_NAME>"
-	@echo "Available blocks: DDC FilterDownSample BaseBandFilter TimingRecovery"
+	@echo "Available blocks: DDC FilterDownSample BaseBandFilter Normalization TimingRecovery"
 else
 	@$(MAKE) --no-print-directory $(BLOCK)
 endif
@@ -46,6 +46,13 @@ BBF_SRCS := 03BaseBandFilter/kernel.cu 03BaseBandFilter/bbf_main.cu utils/utils.
 BaseBandFilter: | $(BUILD_DIR)
 	$(NVCC) $(NVCCFLAGS) -rdc=true $(BBF_SRCS) -lcufft -o $(BUILD_DIR)/baseband_filter
 	@echo "[BaseBandFilter] -> $(BUILD_DIR)/baseband_filter"
+
+# ---- Normalization block --------------------------------------
+NORM_SRCS := 05Normalization/kernel.cu 05Normalization/norm_main.cu utils/utils.cpp
+
+Normalization: | $(BUILD_DIR)
+	$(NVCC) $(NVCCFLAGS) -rdc=true $(NORM_SRCS) -o $(BUILD_DIR)/normalization
+	@echo "[Normalization] -> $(BUILD_DIR)/normalization"
 
 # ---- TimingRecovery block ------------------------------------
 # Requires demod_parallel.a (Linux rebuild of demod_parallel.cu).
