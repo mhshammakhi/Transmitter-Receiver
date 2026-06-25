@@ -37,7 +37,7 @@ DDC: | $(BUILD_DIR)
 FDS_SRCS := 02FilterDownSample/kernel.cu 02FilterDownSample/fds_main.cu utils/utils.cpp
 
 FilterDownSample: | $(BUILD_DIR)
-	$(NVCC) $(NVCCFLAGS) -rdc=true $(FDS_SRCS) -o $(BUILD_DIR)/filter_downsample
+	$(NVCC) $(NVCCFLAGS) -rdc=true $(FDS_SRCS) -lcufft -o $(BUILD_DIR)/filter_downsample
 	@echo "[FilterDownSample] -> $(BUILD_DIR)/filter_downsample"
 
 # ---- BaseBandFilter block ------------------------------------
