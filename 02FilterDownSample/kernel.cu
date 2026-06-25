@@ -11,7 +11,7 @@ void filterAndDownSample(float *d_data_Re, float *d_data_Im,
     int i = blockDim.x * blockIdx.x + threadIdx.x;
     float sum_Re;
     float sum_Im;
-    if (i < dataLength)
+    while (i < dataLength)
     {
         sum_Re = 0.0;
         sum_Im = 0.0;
@@ -24,5 +24,7 @@ void filterAndDownSample(float *d_data_Re, float *d_data_Im,
 
         d_filteredData_Re[i] = sum_Re;
         d_filteredData_Im[i] = sum_Im;
+
+        i+= blockDim.x * gridDim.x;
     }
 }

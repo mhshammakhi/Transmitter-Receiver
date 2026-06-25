@@ -4,9 +4,12 @@ import numpy as np
 from scipy.signal import welch
 import matplotlib.pyplot as plt
 
+inFile = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else None
+
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-inFile = sys.argv[1] if len(sys.argv) > 1 else 'output.bin'
+if inFile is None:
+    inFile = 'output.bin'
 data = np.fromfile(inFile, dtype=np.float32)
 
 signal = data[0::2] + 1j * data[1::2]
