@@ -44,7 +44,7 @@ FilterDownSample: | $(BUILD_DIR)
 BBF_SRCS := 03BaseBandFilter/kernel.cu 03BaseBandFilter/bbf_main.cu utils/utils.cpp
 
 BaseBandFilter: | $(BUILD_DIR)
-	$(NVCC) $(NVCCFLAGS) -rdc=true $(BBF_SRCS) -o $(BUILD_DIR)/baseband_filter
+	$(NVCC) $(NVCCFLAGS) -rdc=true $(BBF_SRCS) -lcufft -o $(BUILD_DIR)/baseband_filter
 	@echo "[BaseBandFilter] -> $(BUILD_DIR)/baseband_filter"
 
 # ---- TimingRecovery block ------------------------------------

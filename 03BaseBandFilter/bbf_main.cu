@@ -3,10 +3,18 @@
 #include <string>
 #include <vector>
 #include <cuda_runtime.h>
+#include <cufft.h>
 
 #include "../utils/utils.h"
 
 #define MAX_FILTER_LENGTH 1024
+
+// Baseband-filter implementation select:
+//   0 = direct time-domain FIR convolution, computed at every output
+//       position (default)
+//   1 = FFT-based convolution using cuFFT: a single transform spanning the
+//       whole signal, frequency-domain multiply, inverse transform, extract
+#define USE_FFT_FILTER 1
 
 // Defined in kernel.cu
 extern __constant__ float c_baseBandFilter_Coef[];
@@ -16,7 +24,27 @@ void filterBaseband(float *d_data_Re, float *d_data_Im,
                     float *d_filteredData_Re, float *d_filteredData_Im,
                     const int filterLength, const int dataLength, float *d_ABS);
 
+__global__
+void packSignalComplex(const float *re, const float *im, cufftComplex *out,
+                       const int len, const int fftSize);
+__global__
+void packFilterComplex(cufftComplex *out, const int filterLength, const int fftSize);
+__global__
+void complexMultiplyScale(cufftComplex *a, const cufftComplex *b, const int fftSize);
+__global__
+void extractFiltered(const cufftComplex *conv, float *outRe, float *outIm, float *outAbs,
+                     const int filterLength, const int outputLength);
+
 static constexpr int THREADS_PER_BLOCK = 256;
+
+#if USE_FFT_FILTER
+static int nextPow2(int n)
+{
+    int p = 1;
+    while (p < n) p <<= 1;
+    return p;
+}
+#endif
 
 int main(int argc, char *argv[])
 {
@@ -89,11 +117,39 @@ int main(int argc, char *argv[])
     cudaMemcpy(d_im, h_im.data(), inputLength * sizeof(float), cudaMemcpyHostToDevice);
 
     // --- Kernel ---
+#if USE_FFT_FILTER
+    const int fftSize = nextPow2(inputLength + filterLength - 1);
+    cufftComplex *d_sigFFT{}, *d_filtFFT{};
+    cudaMalloc(&d_sigFFT,  fftSize * sizeof(cufftComplex));
+    cudaMalloc(&d_filtFFT, fftSize * sizeof(cufftComplex));
+
+    cufftHandle plan;
+    cufftPlan1d(&plan, fftSize, CUFFT_C2C, 1);
+
+    const int gridSizeFFT = (fftSize      + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+    const int gridSizeOut = (outputLength + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+
+    cudaEventRecord(start_kernel);
+    packSignalComplex<<<gridSizeFFT, THREADS_PER_BLOCK>>>(d_re, d_im, d_sigFFT, inputLength, fftSize);
+    packFilterComplex<<<gridSizeFFT, THREADS_PER_BLOCK>>>(d_filtFFT, filterLength, fftSize);
+
+    cufftExecC2C(plan, d_sigFFT,  d_sigFFT,  CUFFT_FORWARD);
+    cufftExecC2C(plan, d_filtFFT, d_filtFFT, CUFFT_FORWARD);
+
+    complexMultiplyScale<<<gridSizeFFT, THREADS_PER_BLOCK>>>(d_sigFFT, d_filtFFT, fftSize);
+
+    cufftExecC2C(plan, d_sigFFT, d_sigFFT, CUFFT_INVERSE);
+
+    extractFiltered<<<gridSizeOut, THREADS_PER_BLOCK>>>(d_sigFFT, d_out_re, d_out_im, d_abs,
+                                                         filterLength, outputLength);
+    cudaEventRecord(stop_kernel);
+#else
     const int gridSize = (outputLength + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
     cudaEventRecord(start_kernel);
     filterBaseband<<<gridSize, THREADS_PER_BLOCK>>>(d_re, d_im, d_out_re, d_out_im,
                                                      filterLength, outputLength, d_abs);
     cudaEventRecord(stop_kernel);
+#endif
 
     // --- D2H copy ---
     PinnedFloatVector h_out_re(outputLength), h_out_im(outputLength);
@@ -148,6 +204,12 @@ int main(int argc, char *argv[])
             std::cerr << "Cannot open abs output file: " << absFile << "\n";
         }
     }
+
+#if USE_FFT_FILTER
+    cufftDestroy(plan);
+    cudaFree(d_sigFFT);
+    cudaFree(d_filtFFT);
+#endif
 
     cudaFree(d_re);
     cudaFree(d_im);
