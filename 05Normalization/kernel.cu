@@ -17,7 +17,7 @@ void computePowerSamples(const float *__restrict__ d_data_Re, const float *__res
 }
 
 __global__
-void NF_LoopFilter_MF(float *d_sum, const bool isOqpsk = false, const int dataLen = 0)
+void LoopFilter_UnitPower(float *d_sum, const bool isOqpsk = false, const int dataLen = 0)
 {
     int denum{ isOqpsk ? dataLen : d_nValid_vec[0]};
     d_NormalizeFactor_MF = sqrtf(d_sum[0] / denum);
@@ -27,12 +27,12 @@ void NF_LoopFilter_MF(float *d_sum, const bool isOqpsk = false, const int dataLe
     d_sum[0] = 0;
 }
 
-// AGC counterpart of NF_LoopFilter_MF: scales so the block's peak amplitude
+// AGC counterpart of LoopFilter_UnitPower: scales so the block's peak amplitude
 // (not its average power) maps to 1. d_max[0] is expected to hold the max of
 // computePowerSamples' output (squared magnitude), so sqrt gives the peak
 // amplitude directly.
 __global__
-void NF_LoopFilter_AGC(float *d_max, const bool isOqpsk = false, const int dataLen = 0)
+void LoopFilter_AGC(float *d_max, const bool isOqpsk = false, const int dataLen = 0)
 {
     d_NormalizeFactor_MF = sqrtf(d_max[0]);
     if(d_NormalizeFactor_MF == 0)
@@ -42,7 +42,7 @@ void NF_LoopFilter_AGC(float *d_max, const bool isOqpsk = false, const int dataL
 }
 
 __global__
-void Normalize_MF(float *d_data_Re, float *d_data_Im, float *d_normalize_Re, float *d_normalize_Im,
+void Normalize_IQ(float *d_data_Re, float *d_data_Im, float *d_normalize_Re, float *d_normalize_Im,
                   const bool isOqpsk = false, const int dataLen = 0)
 {
     int i = blockDim.x * blockIdx.x + threadIdx.x;
@@ -55,7 +55,7 @@ void Normalize_MF(float *d_data_Re, float *d_data_Im, float *d_normalize_Re, flo
     }
 }
 
-__global__ void parallelSum_LenDivisibleBy1024(float *d_data, float *d_Sum)
+__global__ void blockReduceSum_1024Len(float *d_data, float *d_Sum)
 {
     __shared__ float sdata[1024];
 
@@ -85,7 +85,7 @@ __global__ void parallelSum_LenDivisibleBy1024(float *d_data, float *d_Sum)
     }
 }
 
-__global__ void parallelSum_arbitraryLen(float *a, float* sum, const bool isOqpsk = false, const int dataLen = 0) {
+__global__ void blockReduceSum_FlexibleLen(float *a, float* sum, const bool isOqpsk = false, const int dataLen = 0) {
     int dataLength{ isOqpsk ? dataLen : d_nValid_vec[0] };
     unsigned int i{ threadIdx.x + blockDim.x * blockIdx.x };
     if (i >= dataLength)
@@ -126,7 +126,7 @@ __device__ static float atomicMax(float* address, float val)
     return __int_as_float(old);
 }
 
-__global__ void parallelMax_arbitraryLen(float *a, float* sum, const bool isOqpsk = false, const int dataLen = 0) {
+__global__ void blockReduceMax_FlexibleLen(float *a, float* sum, const bool isOqpsk = false, const int dataLen = 0) {
 //    __shared__ float a_shared[1024];
     int dataLength{ isOqpsk ? dataLen : d_nValid_vec[0] };
     unsigned int i{ threadIdx.x + blockDim.x * blockIdx.x };

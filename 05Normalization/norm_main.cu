@@ -18,15 +18,15 @@ __global__
 void computePowerSamples(const float *d_data_Re, const float *d_data_Im, float *d_power,
                          const bool isOqpsk = false, const int dataLen = 0);
 __global__
-void parallelSum_arbitraryLen(float *a, float *sum, const bool isOqpsk = false, const int dataLen = 0);
+void blockReduceSum_FlexibleLen(float *a, float *sum, const bool isOqpsk = false, const int dataLen = 0);
 __global__
-void parallelMax_arbitraryLen(float *a, float *sum, const bool isOqpsk = false, const int dataLen = 0);
+void blockReduceMax_FlexibleLen(float *a, float *sum, const bool isOqpsk = false, const int dataLen = 0);
 __global__
-void NF_LoopFilter_MF(float *d_sum, const bool isOqpsk = false, const int dataLen = 0);
+void LoopFilter_UnitPower(float *d_sum, const bool isOqpsk = false, const int dataLen = 0);
 __global__
-void NF_LoopFilter_AGC(float *d_max, const bool isOqpsk = false, const int dataLen = 0);
+void LoopFilter_AGC(float *d_max, const bool isOqpsk = false, const int dataLen = 0);
 __global__
-void Normalize_MF(float *d_data_Re, float *d_data_Im, float *d_normalize_Re, float *d_normalize_Im,
+void Normalize_IQ(float *d_data_Re, float *d_data_Im, float *d_normalize_Re, float *d_normalize_Im,
                   const bool isOqpsk = false, const int dataLen = 0);
 
 // The arbitraryLen reduction kernels hard-code a block size of 1024.
@@ -79,14 +79,14 @@ int main(int argc, char *argv[])
     computePowerSamples<<<gridSize, THREADS_PER_BLOCK>>>(d_re, d_im, d_power);
 
 #if USE_AGC
-    parallelMax_arbitraryLen<<<gridSize, THREADS_PER_BLOCK>>>(d_power, d_reduce);
-    NF_LoopFilter_AGC<<<1, 1>>>(d_reduce);
+    blockReduceMax_FlexibleLen<<<gridSize, THREADS_PER_BLOCK>>>(d_power, d_reduce);
+    LoopFilter_AGC<<<1, 1>>>(d_reduce);
 #else
-    parallelSum_arbitraryLen<<<gridSize, THREADS_PER_BLOCK>>>(d_power, d_reduce);
-    NF_LoopFilter_MF<<<1, 1>>>(d_reduce);
+    blockReduceSum_FlexibleLen<<<gridSize, THREADS_PER_BLOCK>>>(d_power, d_reduce);
+    LoopFilter_UnitPower<<<1, 1>>>(d_reduce);
 #endif
 
-    Normalize_MF<<<gridSize, THREADS_PER_BLOCK>>>(d_re, d_im, d_out_re, d_out_im);
+    Normalize_IQ<<<gridSize, THREADS_PER_BLOCK>>>(d_re, d_im, d_out_re, d_out_im);
     cudaEventRecord(stop_kernel);
 
     // --- D2H copy ---

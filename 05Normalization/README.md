@@ -7,9 +7,9 @@ power is 1) and AGC (scale so peak amplitude is 1).
 ## Files
 
 - `kernel.cu` — CUDA kernels: `computePowerSamples` (pow(abs(sample),2) per
-  sample), `parallelSum_arbitraryLen` / `parallelMax_arbitraryLen` (block
-  reductions feeding each mode), `NF_LoopFilter_MF` / `NF_LoopFilter_AGC`
-  (turn the reduction result into a normalize factor), and `Normalize_MF`
+  sample), `blockReduceSum_FlexibleLen` / `blockReduceMax_FlexibleLen` (block
+  reductions feeding each mode), `LoopFilter_UnitPower` / `LoopFilter_AGC`
+  (turn the reduction result into a normalize factor), and `Normalize_IQ`
   (applies the factor to the IQ signal)
 - `norm_main.cu` — host wrapper: loads the input signal, runs the selected
   mode, times the execution and writes the output signal
