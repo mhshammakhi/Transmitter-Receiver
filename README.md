@@ -24,7 +24,7 @@ IF/baseband samples
  03 BaseBandFilter ─────►  matched/noise-reduction FIR filter
        │
        ▼
- 04 Resampler (Reserved)
+ 04 Resampler ───────────►  arbitrary (non-integer) rate conversion
        │
        ▼
  05 Normalization ──────►  AGC / unit-power scaling
@@ -42,7 +42,7 @@ IF/baseband samples
  10 ChannelEncoderDecoder ► LDPC / TPC / Turbo decoding
 ```
 
-Gaps in the numbering (04, 07, 08) are reserved for stages (Resampler, PLL) that are not
+Gaps in the numbering (07, 08) are reserved for a stage (PLL) that is not
 published in this repository yet.
 
 ## Blocks
@@ -52,6 +52,7 @@ published in this repository yet.
 | 01 | [DDC](01DDC/README.md) | done | Digital down-converter: mixes the IQ input with a complex NCO to shift it to baseband |
 | 02 | [FilterDownSample](02FilterDownSample/README.md) | done | FIR decimation filter, with time-domain and cuFFT frequency-domain implementations |
 | 03 | [BaseBandFilter](03BaseBandFilter/README.md) | done | Baseband FIR filtering to reduce noise, also outputs magnitude-squared |
+| 04 | [Resampler](04Resampler/README.md) | done | Arbitrary (non-integer) sample-rate conversion via cubic (Farrow) interpolation |
 | 05 | [Normalization](05Normalization/README.md) | done | Unit-power normalization or AGC (peak-amplitude) scaling |
 | 06 | [TimingRecovery](06TimingRecovery/FastGardner) | kernel + host wrapper exist, no block README yet | Gardner symbol-timing recovery and carrier PLL, ported from the `demo/` prototypes |
 | 09 | [SoftDemapper](09SoftDemapper) | kernel only, no host wrapper / `make` target | Maps QPSK / 8PSK / 16APSK / 32APSK symbols to soft bits (LLR) |
@@ -97,8 +98,8 @@ Binaries are written to `build/`; `make clean` removes that directory.
 
 ## Repository layout
 
-- `01DDC/`, `02FilterDownSample/`, `03BaseBandFilter/`, `05Normalization/`,
-  `06TimingRecovery/` — CUDA blocks described above
+- `01DDC/`, `02FilterDownSample/`, `03BaseBandFilter/`, `04Resampler/`,
+  `05Normalization/`, `06TimingRecovery/` — CUDA blocks described above
 - `09SoftDemapper/`, `10ChannelEncoderDecoder/` — additional kernels not yet
   wired into the `Makefile`
 - `utils/` — shared host-side helpers: pinned-memory buffers
